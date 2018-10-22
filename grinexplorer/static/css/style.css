@@ -42,6 +42,24 @@ main {
   align-items: center;
 }
 
+#grinmint-brand {
+  font-size: 34px;
+  letter-spacing: 1px;
+  height: 60px;
+}
+#grinmint-brand .part1 {
+  color: #652d90;
+  padding-top: 4px;
+}
+#grinmint-brand .part2 {
+  color: #3EB489;
+  padding-top: 4px;
+}
+.part3 {
+  margin-right: 20px;
+  font-size: 20px;
+}
+
 /*.header_block {
   margin-left: 20px;
 }*/
