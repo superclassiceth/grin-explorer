@@ -1,6 +1,7 @@
 from django.db.models import Count, Sum, Max, Min
 from django.db.models.functions import TruncDay
 from django.views.generic import ListView, DetailView, TemplateView
+from django.urls import reverse
 from django.shortcuts import redirect
 
 from blockchain.models import Block, Input, Output
@@ -11,7 +12,9 @@ class BlockList(ListView):
     template_name = "explorer/block_list.html"
     context_object_name = "block_list"
 
-    queryset = Block.objects.order_by("-timestamp")
+    queryset = Block.objects.order_by("-timestamp") \
+                            .select_related("previous") \
+                            .prefetch_related("output_set", "kernel_set", "input_set")
     paginate_by = 20
 
     def get_block_chart(self):
@@ -192,6 +195,8 @@ class BlockDetail(DetailView):
 
     template_name = "explorer/block_detail.html"
     context_object_name = "blk"
+    queryset = Block.objects.select_related("previous") \
+                            .prefetch_related("output_set", "kernel_set", "input_set")
 
 
 class OutputByCommit(TemplateView):
@@ -205,18 +210,21 @@ class OutputByCommit(TemplateView):
         return context
 
     def get(self, request, commit):
-        outputs = Output.objects.filter(
-            commit=commit).order_by("-id")
+        outputs = Output.objects.filter(commit=commit) \
+                                .order_by("-id")
 
-        if len(outputs) != 0:
-            self.output = outputs[0]
-            self.output.occurrences = len(outputs)
-            temp_input = Input.objects.filter(data=commit)
-            if len(temp_input) != 0:
-                # update as spent
-                self.output.spent = True
-                self.output.spent_at = temp_input[0].block.height
-            return super().get(request)
+        if len(outputs) == 0:
+            return redirect("%s?q=%s" % (reverse("search"), commit),
+                            permanent=False)
+
+        self.output = outputs[0]
+        self.output.occurrences = len(outputs)
+        temp_input = Input.objects.filter(data=commit)
+        if len(temp_input) != 0:
+            # update as spent
+            self.output.spent = True
+            self.output.spent_at = temp_input[0].block.height
+        return super().get(request)
 
 
 class BlocksByHeight(TemplateView):
